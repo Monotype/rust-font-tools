@@ -64,11 +64,13 @@ impl Deserialize for C2PA {
             let uri_as_bytes: Vec<u8> =
                 c.de_counted(internal_record.activeManifestUriLength as usize)?;
             // And converting to a string read as UTF-8 encoding
-            active_manifest_uri = Some(str::from_utf8(&uri_as_bytes)
-                .map_err(|_| {
-                    DeserializationError("Failed to read UTF-8 string from bytes".to_string())
-                })?
-                .to_string());
+            active_manifest_uri = Some(
+                str::from_utf8(&uri_as_bytes)
+                    .map_err(|_| {
+                        DeserializationError("Failed to read UTF-8 string from bytes".to_string())
+                    })?
+                    .to_string(),
+            );
         }
 
         if internal_record.c2paManifestStoreOffset > 0 {
@@ -78,11 +80,13 @@ impl Deserialize for C2PA {
             let store_as_bytes: Vec<u8> =
                 c.de_counted(internal_record.c2paManifestStoreLength as usize)?;
             // And then convert to a string as UTF-8 bytes
-            c2pa_manifest_store = Some(str::from_utf8(&store_as_bytes)
-                .map_err(|_| {
-                    DeserializationError("Failed to read UTF-8 string from bytes".to_string())
-                })?
-                .to_string());
+            c2pa_manifest_store = Some(
+                str::from_utf8(&store_as_bytes)
+                    .map_err(|_| {
+                        DeserializationError("Failed to read UTF-8 string from bytes".to_string())
+                    })?
+                    .to_string(),
+            );
         }
 
         // Restore the state of the reader
@@ -151,6 +155,7 @@ impl Serialize for C2PA {
 
 #[cfg(test)]
 mod tests {
+    /// Verifies the behavior when the activeManifestUri is None
     #[test]
     fn c2pa_none_uri() {
         let c2pa = super::C2PA {
@@ -173,6 +178,8 @@ mod tests {
         let serialized = otspec::ser::to_bytes(&deserialized).unwrap();
         assert_eq!(serialized, binary_c2pa);
     }
+
+    /// Verifies the behavior when the c2paManifestStore is None
     #[test]
     fn c2pa_none_manifest_store() {
         let c2pa = super::C2PA {
@@ -195,6 +202,9 @@ mod tests {
         let serialized = otspec::ser::to_bytes(&deserialized).unwrap();
         assert_eq!(serialized, binary_c2pa);
     }
+
+    /// Verifies the behavior when there is both an active manifest URI and a
+    /// C2PA manifest store in the font.
     #[test]
     fn c2pa_otspec() {
         let c2pa = super::C2PA {
