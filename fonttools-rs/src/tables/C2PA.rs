@@ -32,7 +32,7 @@ tables!(
 /// an embedded manifest store.
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[allow(non_snake_case)]
-pub struct C2PARecord {
+pub struct C2PA {
     /// Major version of the C2PA table record
     pub majorVersion: uint16,
     /// Minor version of the C2PA table record
@@ -43,9 +43,9 @@ pub struct C2PARecord {
     pub c2paManifestStore: Option<String>,
 }
 
-impl C2PARecord {}
+impl C2PA {}
 
-impl Deserialize for C2PARecord {
+impl Deserialize for C2PA {
     fn from_bytes(c: &mut ReaderContext) -> Result<Self, DeserializationError> {
         let mut active_manifest_uri: Option<String> = None;
         let mut c2pa_manifest_store: Option<String> = None;
@@ -89,7 +89,7 @@ impl Deserialize for C2PARecord {
         c.pop();
 
         // Return our record
-        Ok(C2PARecord {
+        Ok(C2PA {
             majorVersion: internal_record.majorVersion,
             minorVersion: internal_record.minorVersion,
             activeManifestUri: active_manifest_uri,
@@ -98,7 +98,7 @@ impl Deserialize for C2PARecord {
     }
 }
 
-impl Serialize for C2PARecord {
+impl Serialize for C2PA {
     fn to_bytes(&self, data: &mut Vec<u8>) -> Result<(), SerializationError> {
         // The main offset to the data includes the major/minor versions,
         // the offset/length of the active manifest uri, and the
@@ -153,7 +153,7 @@ impl Serialize for C2PARecord {
 mod tests {
     #[test]
     fn c2pa_none_uri() {
-        let c2pa = super::C2PARecord {
+        let c2pa = super::C2PA {
             majorVersion: 0,
             minorVersion: 1,
             activeManifestUri: None,
@@ -168,14 +168,14 @@ mod tests {
             0x00, 0x00, 0x00, 0x09, // C2PA manifest store length
             0x74, 0x65, 0x73, 0x74, 0x2D, 0x64, 0x61, 0x74, 0x61, // C2PA manifest store data
         ];
-        let deserialized: super::C2PARecord = otspec::de::from_bytes(&binary_c2pa).unwrap();
+        let deserialized: super::C2PA = otspec::de::from_bytes(&binary_c2pa).unwrap();
         assert_eq!(deserialized, c2pa);
         let serialized = otspec::ser::to_bytes(&deserialized).unwrap();
         assert_eq!(serialized, binary_c2pa);
     }
     #[test]
     fn c2pa_none_manifest_store() {
-        let c2pa = super::C2PARecord {
+        let c2pa = super::C2PA {
             majorVersion: 0,
             minorVersion: 1,
             activeManifestUri: Some("file://a".to_owned()),
@@ -190,14 +190,14 @@ mod tests {
             0x00, 0x00, 0x00, 0x00, // C2PA manifest store length
             0x66, 0x69, 0x6C, 0x65, 0x3A, 0x2F, 0x2F, 0x61, // active manifest uri data
         ];
-        let deserialized: super::C2PARecord = otspec::de::from_bytes(&binary_c2pa).unwrap();
+        let deserialized: super::C2PA = otspec::de::from_bytes(&binary_c2pa).unwrap();
         assert_eq!(deserialized, c2pa);
         let serialized = otspec::ser::to_bytes(&deserialized).unwrap();
         assert_eq!(serialized, binary_c2pa);
     }
     #[test]
     fn c2pa_otspec() {
-        let c2pa = super::C2PARecord {
+        let c2pa = super::C2PA {
             majorVersion: 0,
             minorVersion: 1,
             activeManifestUri: Some("file://a".to_owned()),
@@ -213,7 +213,7 @@ mod tests {
             0x66, 0x69, 0x6C, 0x65, 0x3A, 0x2F, 0x2F, 0x61, // active manifest uri data
             0x74, 0x65, 0x73, 0x74, 0x2D, 0x64, 0x61, 0x74, 0x61, // C2PA manifest store data
         ];
-        let deserialized: super::C2PARecord = otspec::de::from_bytes(&binary_c2pa).unwrap();
+        let deserialized: super::C2PA = otspec::de::from_bytes(&binary_c2pa).unwrap();
         assert_eq!(deserialized, c2pa);
         let serialized = otspec::ser::to_bytes(&deserialized).unwrap();
         assert_eq!(serialized, binary_c2pa);
