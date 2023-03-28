@@ -73,6 +73,8 @@ pub struct Table {
 pub enum LoadedTable {
     /// Contains an axis variations table.
     avar(Rc<tables::avar::avar>),
+    /// Contains a C2PA manifest store and/or active manifest URI table.
+    C2PA(Rc<tables::C2PA::C2PA>),
     /// Contains a character to glyph index mapping table.
     cmap(Rc<tables::cmap::cmap>),
     /// Contains a control value table.
@@ -617,6 +619,7 @@ table_boilerplate!(tables::GPOS::GPOS, GPOS);
 table_boilerplate!(tables::GSUB::GSUB, GSUB);
 table_boilerplate!(tables::STAT::STAT, STAT);
 table_boilerplate!(tables::avar::avar, avar);
+table_boilerplate!(tables::C2PA::C2PA, C2PA);
 table_boilerplate!(tables::cmap::cmap, cmap);
 table_boilerplate!(tables::cvt::cvt, cvt);
 table_boilerplate!(tables::fpgm::fpgm, fpgm);
@@ -640,6 +643,7 @@ impl Serialize for LoadedTable {
         match self {
             LoadedTable::Unknown(expr) => expr.to_bytes(data),
             LoadedTable::avar(expr) => expr.to_bytes(data),
+            LoadedTable::C2PA(expr) => expr.to_bytes(data),
             LoadedTable::cmap(expr) => expr.to_bytes(data),
             LoadedTable::cvt(expr) => expr.to_bytes(data),
             LoadedTable::fpgm(expr) => expr.to_bytes(data),
