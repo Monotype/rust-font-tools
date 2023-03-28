@@ -47,6 +47,8 @@ impl C2PARecord {}
 
 impl Deserialize for C2PARecord {
     fn from_bytes(c: &mut ReaderContext) -> Result<Self, DeserializationError> {
+        let mut active_manifest_uri: Option<String> = None;
+        let mut c2pa_manifest_store: Option<String> = None;
         // Save the pointer of the current reader context, before we read the
         // internal record for obtaining the offset from the beginning of the
         // table to the data as to specification.
@@ -55,29 +57,33 @@ impl Deserialize for C2PARecord {
         // Read the components of the C2PA header
         let internal_record: C2PARecordInternal = c.de()?;
 
-        // Offset to the active manifest URI
-        c.ptr = c.top_of_table() + internal_record.activeManifestUriOffset as usize;
-        // Reading in the active URI as bytes
-        let uri_as_bytes: Vec<u8> =
-            c.de_counted(internal_record.activeManifestUriLength as usize)?;
-        // And converting to a string read as UTF-8 encoding
-        let active_manifest_uri: String = str::from_utf8(&uri_as_bytes)
-            .map_err(|_| {
-                DeserializationError("Failed to read UTF-8 string from bytes".to_string())
-            })?
-            .to_string();
+        if internal_record.activeManifestUriOffset > 0 {
+            // Offset to the active manifest URI
+            c.ptr = c.top_of_table() + internal_record.activeManifestUriOffset as usize;
+            // Reading in the active URI as bytes
+            let uri_as_bytes: Vec<u8> =
+                c.de_counted(internal_record.activeManifestUriLength as usize)?;
+            // And converting to a string read as UTF-8 encoding
+            active_manifest_uri = Some(str::from_utf8(&uri_as_bytes)
+                .map_err(|_| {
+                    DeserializationError("Failed to read UTF-8 string from bytes".to_string())
+                })?
+                .to_string());
+        }
 
-        // Reset the offset to the C2PA manifest store
-        c.ptr = c.top_of_table() + internal_record.c2paManifestStoreOffset as usize;
-        // Read the store as bytes
-        let store_as_bytes: Vec<u8> =
-            c.de_counted(internal_record.c2paManifestStoreLength as usize)?;
-        // And then convert to a string as UTF-8 bytes
-        let c2pa_manifest_store: String = str::from_utf8(&store_as_bytes)
-            .map_err(|_| {
-                DeserializationError("Failed to read UTF-8 string from bytes".to_string())
-            })?
-            .to_string();
+        if internal_record.c2paManifestStoreOffset > 0 {
+            // Reset the offset to the C2PA manifest store
+            c.ptr = c.top_of_table() + internal_record.c2paManifestStoreOffset as usize;
+            // Read the store as bytes
+            let store_as_bytes: Vec<u8> =
+                c.de_counted(internal_record.c2paManifestStoreLength as usize)?;
+            // And then convert to a string as UTF-8 bytes
+            c2pa_manifest_store = Some(str::from_utf8(&store_as_bytes)
+                .map_err(|_| {
+                    DeserializationError("Failed to read UTF-8 string from bytes".to_string())
+                })?
+                .to_string());
+        }
 
         // Restore the state of the reader
         c.pop();
@@ -86,8 +92,8 @@ impl Deserialize for C2PARecord {
         Ok(C2PARecord {
             majorVersion: internal_record.majorVersion,
             minorVersion: internal_record.minorVersion,
-            activeManifestUri: Some(active_manifest_uri),
-            c2paManifestStore: Some(c2pa_manifest_store),
+            activeManifestUri: active_manifest_uri,
+            c2paManifestStore: c2pa_manifest_store,
         })
     }
 }
@@ -158,7 +164,7 @@ mod tests {
             0x00, 0x01, // Minor version
             0x00, 0x00, 0x00, 0x00, // Active manifest URI offset
             0x00, 0x00, // Active manifest URI length
-            0x00, 0x00, 0x00, 0x10, // C2PA manifest store offset
+            0x00, 0x00, 0x00, 0x12, // C2PA manifest store offset
             0x00, 0x00, 0x00, 0x09, // C2PA manifest store length
             0x74, 0x65, 0x73, 0x74, 0x2D, 0x64, 0x61, 0x74, 0x61, // C2PA manifest store data
         ];
