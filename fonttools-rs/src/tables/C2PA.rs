@@ -60,7 +60,7 @@ impl Default for C2PA {
             majorVersion: 0,
             minorVersion: 1,
             activeManifestUri: Default::default(),
-            c2paManifestStore: Default::default()
+            c2paManifestStore: Default::default(),
         }
     }
 }
