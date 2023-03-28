@@ -1,3 +1,6 @@
+/// The `C2PA` (C2PA manifest store) table
+#[allow(non_snake_case)]
+pub mod C2PA;
 /// The `GDEF` (Glyph definition) table
 #[allow(non_snake_case)]
 pub mod GDEF;
