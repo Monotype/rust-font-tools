@@ -43,7 +43,27 @@ pub struct C2PA {
     pub c2paManifestStore: Option<String>,
 }
 
-impl C2PA {}
+impl C2PA {
+    /// Creates a new C2PA record with the current default version information.
+    pub fn new(active_manifest_uri: Option<String>, c2pa_manifest_store: Option<String>) -> Self {
+        Self {
+            activeManifestUri: active_manifest_uri,
+            c2paManifestStore: c2pa_manifest_store,
+            ..C2PA::default()
+        }
+    }
+}
+
+impl Default for C2PA {
+    fn default() -> Self {
+        Self {
+            majorVersion: 0,
+            minorVersion: 1,
+            activeManifestUri: Default::default(),
+            c2paManifestStore: Default::default()
+        }
+    }
+}
 
 impl Deserialize for C2PA {
     fn from_bytes(c: &mut ReaderContext) -> Result<Self, DeserializationError> {
