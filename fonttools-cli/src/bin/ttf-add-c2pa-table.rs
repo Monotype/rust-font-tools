@@ -33,6 +33,15 @@ fn main() {
             .help("Remove the C2PA table from the font")
             .required(false),
         )
+        .arg(
+          Arg::with_name("active-manifest-uri")
+            .long("active-manifest-uri")
+            .short("a")
+            .conflicts_with("remove")
+            .takes_value(true)
+            .help("Optional URI to an active manifest")
+            .required(false)
+        )
         .get_matches();
     let mut in_font = open_font(&matches);
     let has_c2pa = in_font.tables.contains(&c2pa_tag);
@@ -48,7 +57,10 @@ fn main() {
       in_font.tables.remove(c2pa_tag);
     }
     else {
-      let c2pa = C2PA::default();
+      let c2pa = C2PA::new(
+        matches.value_of("active-manifest-uri").map(|v| v.to_owned()),
+        None
+      );
       in_font.tables.insert(c2pa);
     }
 
