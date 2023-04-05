@@ -328,6 +328,7 @@ impl TableSet {
     fn deserialize_table(&self, tag: Tag, data: Rc<[u8]>) -> Result<Table, DeserializationError> {
         let typed_data: LoadedTable = match tag.as_bytes() {
             b"avar" => otspec::de::from_bytes::<tables::avar::avar>(&data)?.into(),
+            b"C2PA" => otspec::de::from_bytes::<tables::C2PA::C2PA>(&data)?.into(),
             b"cmap" => otspec::de::from_bytes::<tables::cmap::cmap>(&data)?.into(),
             b"cvt " => otspec::de::from_bytes::<tables::cvt::cvt>(&data)?.into(),
             b"fpgm" => otspec::de::from_bytes::<tables::fpgm::fpgm>(&data)?.into(),
