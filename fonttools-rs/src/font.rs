@@ -20,6 +20,10 @@ pub enum SfntVersion {
     TrueType = 0x00010000,
     /// OpenType (generally containing CFF outlines)
     OpenType = 0x4F54544F,
+    /// WOFF 'wOFF`
+    Woff = 0x774F4646,
+    /// WOFF2 'wOF2'
+    Woff2 = 0x774F4632
 }
 
 impl TryFrom<u32> for SfntVersion {
@@ -29,6 +33,8 @@ impl TryFrom<u32> for SfntVersion {
         match v {
             x if x == SfntVersion::TrueType as u32 => Ok(SfntVersion::TrueType),
             x if x == SfntVersion::OpenType as u32 => Ok(SfntVersion::OpenType),
+            x if x == SfntVersion::Woff as u32 => Ok(SfntVersion::Woff),
+            x if x == SfntVersion::Woff2 as u32 => Ok(SfntVersion::Woff2),
             _ => Err(()),
         }
     }
