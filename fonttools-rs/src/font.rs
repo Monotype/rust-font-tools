@@ -48,15 +48,54 @@ struct TableRecord {
     offset: uint32,
     length: uint32,
 }
-/// The header of the font's table directory
+/// SFNT Table Directory
 #[derive(Deserialize)]
 #[allow(non_snake_case)]
-struct TableHeader {
+struct SfntTableDirectory {
     sfntVersion: u32,
     numTables: u16,
     _searchRange: u16,
     _entrySelector: u16,
     _rangeShift: u16,
+}
+
+/// WOFFHeader, see https://www.w3.org/TR/WOFF/#WOFFHeader
+#[derive(Deserialize)]
+#[allow(non_snake_case)]
+struct WOFFHeader {
+    signature: u32,
+    flavor: u32,
+    length: u32,
+    numTables: u16,
+    reserved: u16,
+    totalSfntSize: u32,
+    majorVersion: u16,
+    minorVersion: u16,
+    metaOffset: u32,
+    metaLength: u32,
+    metaOrigLength: u32,
+    privOffset: u32,
+    privLength: u32
+}
+
+/// WOFF2Header, see https://www.w3.org/TR/WOFF2/#woff20Header
+#[derive(Deserialize)]
+#[allow(non_snake_case)]
+struct WOFF2Header {
+    signature: u32,
+    flavor: u32,
+    length: u32,
+    numTables: u16,
+    reserved: u16,
+    totalSfntSize: u32,
+    totalCompressedSize: u32,
+    majorVersion: u16,
+    minorVersion: u16,
+    metaOffest: u32,
+    metaLength: u32,
+    metaOrigLength: u32,
+    privOffset: u32,
+    privLength: u32
 }
 
 /// An OpenType font object
@@ -238,31 +277,84 @@ impl Serialize for Font {
 
 impl Deserialize for Font {
     fn from_bytes(c: &mut ReaderContext) -> Result<Self, DeserializationError> {
-        let header: TableHeader = c.de()?;
-        let version = TryInto::<SfntVersion>::try_into(header.sfntVersion).map_err(|_| {
+        // Sniff the magic, and then rewind to try for the whole header.
+        let magic: u32 = c.de()?;
+        c.ptr = 0;
+        let version = TryInto::<SfntVersion>::try_into(magic).map_err(|_| {
             DeserializationError("Font must begin with a valid version".to_string())
         })?;
+        if version == SfntVersion::OpenType || version == SfntVersion::TrueType {
+            let header: SfntTableDirectory = c.de()?;
 
-        let mut raw_tables = crate::table_store::TableLoader::default();
-        let mut table_records = Vec::with_capacity(header.numTables as usize);
-        //TODO: is this allocation + sorting necessary? can't we just deserialize
-        //each table directly as we encounter the header?
+            let mut raw_tables = crate::table_store::TableLoader::default();
+            let mut table_records = Vec::with_capacity(header.numTables as usize);
+            //TODO: is this allocation + sorting necessary? can't we just deserialize
+            //each table directly as we encounter the header?
 
-        for _ in 0..(header.numTables as usize) {
-            let next: TableRecord = c.de()?;
-            table_records.push(next)
+            for _ in 0..(header.numTables as usize) {
+                let next: TableRecord = c.de()?;
+                table_records.push(next)
+            }
+            table_records.sort_by_key(|tr| tr.offset);
+            for tr in table_records {
+                let start = tr.offset as usize;
+                let this_table = &c.input[start..start + tr.length as usize];
+                raw_tables.add(tr.tag, this_table.into());
+            }
+            Ok(Font {
+                sfntVersion: version,
+                tables: raw_tables.finish()?,
+                _numGlyphs: None,
+            })
         }
-        table_records.sort_by_key(|tr| tr.offset);
-        for tr in table_records {
-            let start = tr.offset as usize;
-            let this_table = &c.input[start..start + tr.length as usize];
-            raw_tables.add(tr.tag, this_table.into());
+        else if version == SfntVersion::Woff {
+            let header: WOFFHeader = c.de()?;
+
+            let mut raw_tables = crate::table_store::TableLoader::default();
+            let mut table_records = Vec::with_capacity(header.numTables as usize);
+            //TODO: is this allocation + sorting necessary? can't we just deserialize
+            //each table directly as we encounter the header?
+
+            for _ in 0..(header.numTables as usize) {
+                let next: TableRecord = c.de()?;
+                table_records.push(next)
+            }
+            table_records.sort_by_key(|tr| tr.offset);
+            for tr in table_records {
+                let start = tr.offset as usize;
+                let this_table = &c.input[start..start + tr.length as usize];
+                raw_tables.add(tr.tag, this_table.into());
+            }
+            Ok(Font{
+                sfntVersion: version,
+                tables: raw_tables.finish()?,
+                _numGlyphs: None,
+            })
         }
-        Ok(Font {
-            sfntVersion: version,
-            tables: raw_tables.finish()?,
-            _numGlyphs: None,
-        })
+        else { // must be version == SfntVersion::Woff2 {
+            let header: WOFF2Header = c.de()?;
+
+            let mut raw_tables = crate::table_store::TableLoader::default();
+            let mut table_records = Vec::with_capacity(header.numTables as usize);
+            //TODO: is this allocation + sorting necessary? can't we just deserialize
+            //each table directly as we encounter the header?
+
+            for _ in 0..(header.numTables as usize) {
+                let next: TableRecord = c.de()?;
+                table_records.push(next)
+            }
+            table_records.sort_by_key(|tr| tr.offset);
+            for tr in table_records {
+                let start = tr.offset as usize;
+                let this_table = &c.input[start..start + tr.length as usize];
+                raw_tables.add(tr.tag, this_table.into());
+            }
+            Ok(Font {
+                sfntVersion: version,
+                tables: raw_tables.finish()?,
+                _numGlyphs: None,
+            })
+        }
     }
 }
 
