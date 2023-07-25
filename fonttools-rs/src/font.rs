@@ -15,7 +15,7 @@ use std::path::Path;
 
 /// Magic number used to identify the font type
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum SfntVersion {
+pub enum FontVersion {
     /// TrueType (generally containing glyf outlines)
     TrueType = 0x00010000,
     /// OpenType (generally containing CFF outlines)
@@ -26,15 +26,15 @@ pub enum SfntVersion {
     Woff2 = 0x774F4632
 }
 
-impl TryFrom<u32> for SfntVersion {
+impl TryFrom<u32> for FontVersion {
     type Error = ();
 
     fn try_from(v: u32) -> Result<Self, Self::Error> {
         match v {
-            x if x == SfntVersion::TrueType as u32 => Ok(SfntVersion::TrueType),
-            x if x == SfntVersion::OpenType as u32 => Ok(SfntVersion::OpenType),
-            x if x == SfntVersion::Woff as u32 => Ok(SfntVersion::Woff),
-            x if x == SfntVersion::Woff2 as u32 => Ok(SfntVersion::Woff2),
+            x if x == FontVersion::TrueType as u32 => Ok(FontVersion::TrueType),
+            x if x == FontVersion::OpenType as u32 => Ok(FontVersion::OpenType),
+            x if x == FontVersion::Woff as u32 => Ok(FontVersion::Woff),
+            x if x == FontVersion::Woff2 as u32 => Ok(FontVersion::Woff2),
             _ => Err(()),
         }
     }
@@ -42,17 +42,17 @@ impl TryFrom<u32> for SfntVersion {
 
 /// Low-level structure used for serializing/deserializing entries in the table directory
 #[derive(Serialize, Deserialize, Debug)]
-struct TableRecord {
+struct SfntTableDirectoryEntry {
     tag: Tag,
-    checksum: uint32,
-    offset: uint32,
-    length: uint32,
+    checksum: u32,
+    offset: u32,
+    length: u32,
 }
 /// SFNT Table Directory
 #[derive(Deserialize)]
 #[allow(non_snake_case)]
 struct SfntTableDirectory {
-    sfntVersion: u32,
+    _fontVersion: u32,
     numTables: u16,
     _searchRange: u16,
     _entrySelector: u16,
@@ -63,39 +63,58 @@ struct SfntTableDirectory {
 #[derive(Deserialize)]
 #[allow(non_snake_case)]
 struct WOFFHeader {
-    signature: u32,
-    flavor: u32,
-    length: u32,
+    _signature: u32,
+    _flavor: u32,
+    _length: u32,
     numTables: u16,
-    reserved: u16,
-    totalSfntSize: u32,
-    majorVersion: u16,
-    minorVersion: u16,
-    metaOffset: u32,
-    metaLength: u32,
-    metaOrigLength: u32,
-    privOffset: u32,
-    privLength: u32
+    _reserved: u16,
+    _totalSfntSize: u32,
+    _majorVersion: u16,
+    _minorVersion: u16,
+    _metaOffset: u32,
+    _metaLength: u32,
+    _metaOrigLength: u32,
+    _privOffset: u32,
+    _privLength: u32
+}
+
+#[derive(Deserialize)]
+#[allow(non_snake_case)]
+struct WOFFTableDirectoryEntry {
+    tag: Tag,
+    offset: u32,
+    compLength: u32,
+    origLength: u32,
+    origChecksum: u32
 }
 
 /// WOFF2Header, see https://www.w3.org/TR/WOFF2/#woff20Header
 #[derive(Deserialize)]
 #[allow(non_snake_case)]
 struct WOFF2Header {
-    signature: u32,
-    flavor: u32,
-    length: u32,
+    _signature: u32,
+    _flavor: u32,
+    _length: u32,
     numTables: u16,
-    reserved: u16,
-    totalSfntSize: u32,
-    totalCompressedSize: u32,
-    majorVersion: u16,
-    minorVersion: u16,
-    metaOffest: u32,
-    metaLength: u32,
-    metaOrigLength: u32,
-    privOffset: u32,
-    privLength: u32
+    _reserved: u16,
+    _totalSfntSize: u32,
+    _totalCompressedSize: u32,
+    _majorVersion: u16,
+    _minorVersion: u16,
+    _metaOffest: u32,
+    _metaLength: u32,
+    _metaOrigLength: u32,
+    _privOffset: u32,
+    _privLength: u32
+}
+
+#[derive(Deserialize)]
+#[allow(non_snake_case)]
+struct WOFF2TableDirectoryEntry {
+    _flags: u8,
+    tag: Tag,
+    origLength: u32,      // Nope, need to support UIntBase128
+    transformLength: u32  // Nope, need to support UIntBase128
 }
 
 /// An OpenType font object
@@ -103,7 +122,7 @@ struct WOFF2Header {
 #[allow(non_snake_case)]
 pub struct Font {
     /// Font version (TrueType/OpenType)
-    sfntVersion: SfntVersion,
+    fontVersion: FontVersion,
     /// Dictionary of tables in the font
     pub tables: super::table_store::TableSet,
     _numGlyphs: Option<u16>,
@@ -129,9 +148,9 @@ impl Font {
     }
 
     /// Create a new font, empty of a given version (TrueType/OpenType)
-    pub fn new(sfnt_version: SfntVersion) -> Self {
+    pub fn new(sfnt_version: FontVersion) -> Self {
         Self {
-            sfntVersion: sfnt_version,
+            fontVersion: sfnt_version,
             tables: Default::default(),
             _numGlyphs: None,
         }
@@ -238,7 +257,7 @@ impl Serialize for Font {
         let mut output_tables: Vec<u8> = vec![];
         let mut temp = Vec::new();
 
-        output.extend((self.sfntVersion as u32).to_be_bytes());
+        output.extend((self.fontVersion as u32).to_be_bytes());
         output.extend(lenu16.to_be_bytes());
         output.extend(search_range.to_be_bytes());
         output.extend(max_pow2.to_be_bytes());
@@ -277,13 +296,16 @@ impl Serialize for Font {
 
 impl Deserialize for Font {
     fn from_bytes(c: &mut ReaderContext) -> Result<Self, DeserializationError> {
-        // Sniff the magic, and then rewind to try for the whole header.
+
+        // Sniff the file magic and check it to ensure we support the format.
         let magic: u32 = c.de()?;
-        c.ptr = 0;
-        let version = TryInto::<SfntVersion>::try_into(magic).map_err(|_| {
+        let version = TryInto::<FontVersion>::try_into(magic).map_err(|_| {
             DeserializationError("Font must begin with a valid version".to_string())
         })?;
-        if version == SfntVersion::OpenType || version == SfntVersion::TrueType {
+
+        // Rewind the input stream so we can read the entire header at one go.
+        c.ptr = 0;
+        if version == FontVersion::OpenType || version == FontVersion::TrueType {
             let header: SfntTableDirectory = c.de()?;
 
             let mut raw_tables = crate::table_store::TableLoader::default();
@@ -292,7 +314,7 @@ impl Deserialize for Font {
             //each table directly as we encounter the header?
 
             for _ in 0..(header.numTables as usize) {
-                let next: TableRecord = c.de()?;
+                let next: SfntTableDirectoryEntry = c.de()?;
                 table_records.push(next)
             }
             table_records.sort_by_key(|tr| tr.offset);
@@ -302,12 +324,12 @@ impl Deserialize for Font {
                 raw_tables.add(tr.tag, this_table.into());
             }
             Ok(Font {
-                sfntVersion: version,
+                fontVersion: version,
                 tables: raw_tables.finish()?,
                 _numGlyphs: None,
             })
         }
-        else if version == SfntVersion::Woff {
+        else if version == FontVersion::Woff {
             let header: WOFFHeader = c.de()?;
 
             let mut raw_tables = crate::table_store::TableLoader::default();
@@ -316,22 +338,22 @@ impl Deserialize for Font {
             //each table directly as we encounter the header?
 
             for _ in 0..(header.numTables as usize) {
-                let next: TableRecord = c.de()?;
+                let next: WOFFTableDirectoryEntry = c.de()?;
                 table_records.push(next)
             }
             table_records.sort_by_key(|tr| tr.offset);
             for tr in table_records {
                 let start = tr.offset as usize;
-                let this_table = &c.input[start..start + tr.length as usize];
+                let this_table = &c.input[start..start + tr.compLength as usize];
                 raw_tables.add(tr.tag, this_table.into());
             }
             Ok(Font{
-                sfntVersion: version,
+                fontVersion: version,
                 tables: raw_tables.finish()?,
                 _numGlyphs: None,
             })
         }
-        else { // must be version == SfntVersion::Woff2 {
+        else { // must be version == FontVersion::Woff2 {
             let header: WOFF2Header = c.de()?;
 
             let mut raw_tables = crate::table_store::TableLoader::default();
@@ -340,7 +362,7 @@ impl Deserialize for Font {
             //each table directly as we encounter the header?
 
             for _ in 0..(header.numTables as usize) {
-                let next: TableRecord = c.de()?;
+                let next: SfntTableDirectoryEntry = c.de()?;
                 table_records.push(next)
             }
             table_records.sort_by_key(|tr| tr.offset);
@@ -350,7 +372,7 @@ impl Deserialize for Font {
                 raw_tables.add(tr.tag, this_table.into());
             }
             Ok(Font {
-                sfntVersion: version,
+                fontVersion: version,
                 tables: raw_tables.finish()?,
                 _numGlyphs: None,
             })
@@ -439,7 +461,7 @@ mod tests {
                 maxComponentDepth: 0,
             }),
         };
-        let mut font = Font::new(SfntVersion::TrueType);
+        let mut font = Font::new(FontVersion::TrueType);
         font.tables.insert(fhead);
         font.tables.insert(fhhea);
         font.tables.insert(fmaxp);

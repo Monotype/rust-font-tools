@@ -285,9 +285,9 @@ impl TableSet {
     ///
     /// ```no_run
     /// # fn make_name_table() -> tables::name::name { unreachable!("just for show") }
-    /// use fonttools::{tables, font::{SfntVersion, Font}};
+    /// use fonttools::{tables, font::{FontVersion, Font}};
     ///
-    /// let mut font = Font::new(SfntVersion::OpenType);
+    /// let mut font = Font::new(FontVersion::OpenType);
     /// let name_table: tables::name::name = make_name_table();
     /// font.tables.insert(name_table);
     /// ```

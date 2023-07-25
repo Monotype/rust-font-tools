@@ -20,7 +20,7 @@ pub fn fill_tables(
     glyph_names: Vec<String>,
     codepoint_to_gid_mapping: BTreeMap<u32, u16>,
 ) -> Font {
-    let mut font = Font::new(font::SfntVersion::TrueType);
+    let mut font = Font::new(font::FontVersion::TrueType);
     let head_table = compile_head(input, &glyf_table);
     let post_table = compile_post(input, &glyph_names);
     let os2_table = compile_os2(input, &metrics, &glyf_table, &codepoint_to_gid_mapping);

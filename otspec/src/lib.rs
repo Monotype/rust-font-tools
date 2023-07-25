@@ -5,6 +5,7 @@ extern crate shrinkwraprs;
 // necessary for us to use macros defined in otspec_macros
 extern crate self as _tag_macro_crate;
 
+use flate2;
 use crate::types::*;
 use std::convert::TryInto;
 use std::mem;
@@ -311,10 +312,24 @@ pub mod ser {
     }
 }
 pub mod de {
+    use std::io::Read;
+
     pub use crate::{DeserializationError, Deserialize, Deserializer, ReaderContext};
-    pub fn from_bytes<T: Deserialize>(data: &[u8]) -> Result<T, DeserializationError> {
+    pub fn from_uncompressed_bytes<T: Deserialize>(data: &[u8]) -> Result<T, DeserializationError> {
         let mut rc = ReaderContext::new(data.to_vec());
         rc.de()
+    }
+    pub fn from_compressed_bytes<T: Deserialize>(data: &[u8]) -> Result<T, DeserializationError> {
+        use crate::flate2::read::GzDecoder;
+        let cursor = std::io::Cursor::new(data);
+        let mut decoder = GzDecoder::new(cursor);
+        let mut rawData = vec![];
+        decoder.read_to_end(&mut rawData);
+        let mut rc = ReaderContext::new(rawData);
+        rc.de()
+    }
+    pub fn from_bytes<T: Deserialize>(data: &[u8]) -> Result<T, DeserializationError> {
+        return from_compressed_bytes(data);
     }
 }
 

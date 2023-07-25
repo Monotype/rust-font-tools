@@ -17,6 +17,7 @@ petgraph = "0.5.1"
 num-bigint = "0.4.2"
 num = "0.4.0"
 bitflags = "1.2.1"
+flate2 = "1.0.26"
 
 [dev-dependencies]
 clap = "2.33.3"
