@@ -327,14 +327,14 @@ impl TableSet {
 
     fn deserialize_table(&self, tag: Tag, data: Rc<[u8]>) -> Result<Table, DeserializationError> {
         let typed_data: LoadedTable = match tag.as_bytes() {
-            b"avar" => otspec::de::from_bytes::<tables::avar::avar>(&data)?.into(),
-            b"C2PA" => otspec::de::from_bytes::<tables::C2PA::C2PA>(&data)?.into(),
-            b"cmap" => otspec::de::from_bytes::<tables::cmap::cmap>(&data)?.into(),
-            b"cvt " => otspec::de::from_bytes::<tables::cvt::cvt>(&data)?.into(),
-            b"fpgm" => otspec::de::from_bytes::<tables::fpgm::fpgm>(&data)?.into(),
-            b"fvar" => otspec::de::from_bytes::<tables::fvar::fvar>(&data)?.into(),
-            b"gasp" => otspec::de::from_bytes::<tables::gasp::gasp>(&data)?.into(),
-            b"GDEF" => otspec::de::from_bytes::<tables::GDEF::GDEF>(&data)?.into(),
+            b"avar" => otspec::de::from_table_bytes::<tables::avar::avar>(&data)?.into(),
+            b"C2PA" => otspec::de::from_table_bytes::<tables::C2PA::C2PA>(&data)?.into(),
+            b"cmap" => otspec::de::from_table_bytes::<tables::cmap::cmap>(&data)?.into(),
+            b"cvt " => otspec::de::from_table_bytes::<tables::cvt::cvt>(&data)?.into(),
+            b"fpgm" => otspec::de::from_table_bytes::<tables::fpgm::fpgm>(&data)?.into(),
+            b"fvar" => otspec::de::from_table_bytes::<tables::fvar::fvar>(&data)?.into(),
+            b"gasp" => otspec::de::from_table_bytes::<tables::gasp::gasp>(&data)?.into(),
+            b"GDEF" => otspec::de::from_table_bytes::<tables::GDEF::GDEF>(&data)?.into(),
             b"GPOS" => {
                 let num_glyphs = self
                     .maxp()?
@@ -349,15 +349,15 @@ impl TableSet {
                     .ok_or_else(|| DeserializationError("deserialize head before loca".into()))?;
                 tables::GSUB::from_bytes(&mut ReaderContext::new(data.to_vec()), num_glyphs)?.into()
             }
-            b"head" => otspec::de::from_bytes::<tables::head::head>(&data)?.into(),
-            b"hhea" => otspec::de::from_bytes::<tables::hhea::hhea>(&data)?.into(),
-            b"MATH" => otspec::de::from_bytes::<tables::MATH::MATH>(&data)?.into(),
-            b"maxp" => otspec::de::from_bytes::<tables::maxp::maxp>(&data)?.into(),
-            b"name" => otspec::de::from_bytes::<tables::name::name>(&data)?.into(),
-            b"OS/2" => otspec::de::from_bytes::<tables::os2::os2>(&data)?.into(),
-            b"post" => otspec::de::from_bytes::<tables::post::post>(&data)?.into(),
-            b"prep" => otspec::de::from_bytes::<tables::prep::prep>(&data)?.into(),
-            b"STAT" => otspec::de::from_bytes::<tables::STAT::STAT>(&data)?.into(),
+            b"head" => otspec::de::from_table_bytes::<tables::head::head>(&data)?.into(),
+            b"hhea" => otspec::de::from_table_bytes::<tables::hhea::hhea>(&data)?.into(),
+            b"MATH" => otspec::de::from_table_bytes::<tables::MATH::MATH>(&data)?.into(),
+            b"maxp" => otspec::de::from_table_bytes::<tables::maxp::maxp>(&data)?.into(),
+            b"name" => otspec::de::from_table_bytes::<tables::name::name>(&data)?.into(),
+            b"OS/2" => otspec::de::from_table_bytes::<tables::os2::os2>(&data)?.into(),
+            b"post" => otspec::de::from_table_bytes::<tables::post::post>(&data)?.into(),
+            b"prep" => otspec::de::from_table_bytes::<tables::prep::prep>(&data)?.into(),
+            b"STAT" => otspec::de::from_table_bytes::<tables::STAT::STAT>(&data)?.into(),
             b"hmtx" => {
                 let number_of_hmetrics = self
                     //TODO: dear reviewer: this loads the table if missing. do

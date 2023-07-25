@@ -315,20 +315,22 @@ pub mod de {
     use std::io::Read;
 
     pub use crate::{DeserializationError, Deserialize, Deserializer, ReaderContext};
-    pub fn from_uncompressed_bytes<T: Deserialize>(data: &[u8]) -> Result<T, DeserializationError> {
+    pub fn from_bytes<T: Deserialize>(data: &[u8]) -> Result<T, DeserializationError> {
         let mut rc = ReaderContext::new(data.to_vec());
         rc.de()
     }
     pub fn from_compressed_bytes<T: Deserialize>(data: &[u8]) -> Result<T, DeserializationError> {
-        use crate::flate2::read::GzDecoder;
+        use crate::flate2::read::*;
         let cursor = std::io::Cursor::new(data);
-        let mut decoder = GzDecoder::new(cursor);
-        let mut rawData = vec![];
-        decoder.read_to_end(&mut rawData);
+        let mut def_dec_cod_state = ZlibDecoder::new(cursor);
+        let mut rawData: Vec<u8> = Vec::new();
+        //decoder.read_to_end(&mut rawData);
+        let spankdoodle = def_dec_cod_state.read_to_end(&mut rawData);
+        println!("{:?}", spankdoodle);
         let mut rc = ReaderContext::new(rawData);
         rc.de()
     }
-    pub fn from_bytes<T: Deserialize>(data: &[u8]) -> Result<T, DeserializationError> {
+    pub fn from_table_bytes<T: Deserialize>(data: &[u8]) -> Result<T, DeserializationError> {
         return from_compressed_bytes(data);
     }
 }
