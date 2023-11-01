@@ -23,6 +23,7 @@ tables!(
         uint16 minorVersion
         u32 activeManifestUriOffset
         uint16 activeManifestUriLength
+        uint16 reserved
         u32 manifestStoreOffset
         u32 manifestStoreLength
     }
@@ -164,6 +165,7 @@ impl Serialize for C2PA {
             minorVersion: self.minorVersion,
             activeManifestUriOffset: active_manifest_offset,
             activeManifestUriLength: active_manifest_length,
+            reserved: 0,
             manifestStoreOffset: manifest_store_offset,
             manifestStoreLength: manifest_store_length,
         };
@@ -189,6 +191,7 @@ mod tests {
             0x00, 0x01, // Minor version
             0x00, 0x00, 0x00, 0x00, // Active manifest URI offset
             0x00, 0x00, // Active manifest URI length
+            0xA1, 0xB2, // Two reserved bytes - should be zero, but should also be ignored.
             0x00, 0x00, 0x00, 0x12, // C2PA manifest store offset
             0x00, 0x00, 0x00, 0x09, // C2PA manifest store length
             0x74, 0x65, 0x73, 0x74, 0x2D, 0x64, 0x61, 0x74, 0x61, // C2PA manifest store data
@@ -213,6 +216,7 @@ mod tests {
             0x00, 0x01, // Minor version
             0x00, 0x00, 0x00, 0x12, // Active manifest URI offset
             0x00, 0x08, // Active manifest URI length
+            0x33, 0x44, // Two reserved bytes - should be zero, but should also be ignored.
             0x00, 0x00, 0x00, 0x00, // C2PA manifest store offset
             0x00, 0x00, 0x00, 0x00, // C2PA manifest store length
             0x66, 0x69, 0x6C, 0x65, 0x3A, 0x2F, 0x2F, 0x61, // active manifest uri data
@@ -238,6 +242,7 @@ mod tests {
             0x00, 0x01, // Minor version
             0x00, 0x00, 0x00, 0x12, // Active manifest URI offset
             0x00, 0x08, // Active manifest URI length
+            0x99, 0xAA, // Two reserved bytes - should be zero, but should also be ignored.
             0x00, 0x00, 0x00, 0x1A, // C2PA manifest store offset
             0x00, 0x00, 0x00, 0x09, // C2PA manifest store length
             0x66, 0x69, 0x6C, 0x65, 0x3A, 0x2F, 0x2F, 0x61, // active manifest uri data
