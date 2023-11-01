@@ -126,15 +126,16 @@ impl Deserialize for C2PA {
 impl Serialize for C2PA {
     fn to_bytes(&self, data: &mut Vec<u8>) -> Result<(), SerializationError> {
         // The main offset to the data includes the major/minor versions,
-        // the offset/length of the active manifest uri, and the
-        // the offset/length of the C2PA manifest store data.
-        let offset: u32 = 18;
+        // the offset/length of the active manifest uri, two reserved bytes,
+        // and the the offset/length of the C2PA manifest store data.
+        let offset: u32 = 20;
         // Create a data pool for the C2PA data
         let mut c2pa_data_pool: Vec<u8> = Vec::new();
 
         // The active manifest is optional, so default to 0 for offset/length
         let mut active_manifest_offset: u32 = 0_u32;
         let mut active_manifest_length: u16 = 0_u16;
+
         // But if we have a valid active manifest URI, we will use the real
         // values
         if let Some(val) = self.activeManifestUri.as_ref() {
@@ -191,8 +192,8 @@ mod tests {
             0x00, 0x01, // Minor version
             0x00, 0x00, 0x00, 0x00, // Active manifest URI offset
             0x00, 0x00, // Active manifest URI length
-            0xA1, 0xB2, // Two reserved bytes - should be zero, but should also be ignored.
-            0x00, 0x00, 0x00, 0x12, // C2PA manifest store offset
+            0x00, 0x00, // Two reserved bytes - should be zero, but should also be ignored/passed-through
+            0x00, 0x00, 0x00, 0x14, // C2PA manifest store offset
             0x00, 0x00, 0x00, 0x09, // C2PA manifest store length
             0x74, 0x65, 0x73, 0x74, 0x2D, 0x64, 0x61, 0x74, 0x61, // C2PA manifest store data
         ];
@@ -214,9 +215,9 @@ mod tests {
         let binary_c2pa = vec![
             0x00, 0x00, // Major version
             0x00, 0x01, // Minor version
-            0x00, 0x00, 0x00, 0x12, // Active manifest URI offset
+            0x00, 0x00, 0x00, 0x14, // Active manifest URI offset
             0x00, 0x08, // Active manifest URI length
-            0x33, 0x44, // Two reserved bytes - should be zero, but should also be ignored.
+            0x00, 0x00, // Two reserved bytes - should be zero, but should also be ignored/passed-through
             0x00, 0x00, 0x00, 0x00, // C2PA manifest store offset
             0x00, 0x00, 0x00, 0x00, // C2PA manifest store length
             0x66, 0x69, 0x6C, 0x65, 0x3A, 0x2F, 0x2F, 0x61, // active manifest uri data
@@ -240,10 +241,10 @@ mod tests {
         let binary_c2pa = vec![
             0x00, 0x00, // Major version
             0x00, 0x01, // Minor version
-            0x00, 0x00, 0x00, 0x12, // Active manifest URI offset
+            0x00, 0x00, 0x00, 0x14, // Active manifest URI offset
             0x00, 0x08, // Active manifest URI length
-            0x99, 0xAA, // Two reserved bytes - should be zero, but should also be ignored.
-            0x00, 0x00, 0x00, 0x1A, // C2PA manifest store offset
+            0x00, 0x00, // Two reserved bytes - should be zero, but should also be ignored/passed-through
+            0x00, 0x00, 0x00, 0x1C, // C2PA manifest store offset
             0x00, 0x00, 0x00, 0x09, // C2PA manifest store length
             0x66, 0x69, 0x6C, 0x65, 0x3A, 0x2F, 0x2F, 0x61, // active manifest uri data
             0x74, 0x65, 0x73, 0x74, 0x2D, 0x64, 0x61, 0x74, 0x61, // C2PA manifest store data
