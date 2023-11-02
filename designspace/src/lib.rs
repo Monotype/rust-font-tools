@@ -475,8 +475,7 @@ mod tests {
 
     #[test]
     fn test_oriya() {
-        let s = r##"
-<?xml version='1.0' encoding='UTF-8'?>
+        let s = r##"<?xml version='1.0' encoding='UTF-8'?>
 <designspace format="5.0">
   <axes>
     <axis tag="wght" name="Weight" minimum="100" maximum="900" default="400">
